@@ -1,1143 +1,381 @@
 ```javascript
-document.addEventListener("DOMContentLoaded", () => {
+// ========================================
+// BEAN CREW
+// SIMPLE WORKING VERSION
+// ========================================
 
-  console.log("Bean Crew loaded!");
+console.log("SCRIPT.JS HAS LOADED!");
 
-  // =========================
-  // GET HTML ELEMENTS
-  // =========================
 
-  const menu = document.getElementById("menu");
-  const game = document.getElementById("game");
+// Get the important HTML elements
+const startButton = document.getElementById("startButton");
+const menu = document.getElementById("menu");
+const game = document.getElementById("game");
+const canvas = document.getElementById("gameCanvas");
+const statusText = document.getElementById("status");
 
-  const startBtn = document.getElementById("startBtn");
-  const startMessage = document.getElementById("startMessage");
 
-  const canvas = document.getElementById("gameCanvas");
-  const ctx = canvas.getContext("2d");
+// Canvas setup
+const ctx = canvas.getContext("2d");
 
-  const playerCountInput = document.getElementById("playerCount");
-  const impostorCountInput = document.getElementById("impostorCount");
-  const taskCountInput = document.getElementById("taskCount");
-  const visionInput = document.getElementById("vision");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-  const roleText = document.getElementById("roleText");
-  const taskText = document.getElementById("taskText");
 
-  const meetingBtn = document.getElementById("meetingBtn");
-  const reportBtn = document.getElementById("reportBtn");
-  const useBtn = document.getElementById("useBtn");
-  const ventBtn = document.getElementById("ventBtn");
-  const killBtn = document.getElementById("killBtn");
+// ========================================
+// PLAYER
+// ========================================
 
-  const taskModal = document.getElementById("taskModal");
-  const taskTitle = document.getElementById("taskTitle");
-  const taskDescription = document.getElementById("taskDescription");
-  const taskFill = document.getElementById("taskFill");
-  const finishTask = document.getElementById("finishTask");
-  const closeTask = document.getElementById("closeTask");
+const player = {
+  x: canvas.width / 2,
+  y: canvas.height / 2,
 
-  const meetingModal = document.getElementById("meetingModal");
-  const meetingReason = document.getElementById("meetingReason");
-  const voteGrid = document.getElementById("voteGrid");
-  const voteStatus = document.getElementById("voteStatus");
-  const skipVote = document.getElementById("skipVote");
+  speed: 5,
 
-  const winScreen = document.getElementById("winScreen");
-  const winTitle = document.getElementById("winTitle");
-  const winReason = document.getElementById("winReason");
-  const playAgain = document.getElementById("playAgain");
+  color: "#e53935"
+};
 
-  const toast = document.getElementById("toast");
 
-  const sabotageBox = document.getElementById("sabotageBox");
+// ========================================
+// KEYBOARD
+// ========================================
 
-  // =========================
-  // GAME VARIABLES
-  // =========================
+const keys = {};
 
-  let gameStarted = false;
+document.addEventListener("keydown", function(event) {
 
-  let playerCount = 15;
-  let impostorCount = 2;
-  let totalTasks = 5;
+  keys[event.key.toLowerCase()] = true;
 
-  let visionRadius = 250;
+});
 
-  let keys = {};
+document.addEventListener("keyup", function(event) {
 
-  let animationFrame;
+  keys[event.key.toLowerCase()] = false;
 
-  let bots = [];
+});
 
-  let tasks = [];
 
-  let player = {
-    x: canvas.width / 2,
-    y: canvas.height / 2,
+// ========================================
+// START BUTTON
+// ========================================
 
-    speed: 4,
+startButton.addEventListener("click", function() {
 
-    radius: 18,
+  console.log("START ROUND BUTTON WAS CLICKED!");
 
-    color: "#55aaff",
+  // Hide menu
+  menu.classList.add("hidden");
 
-    role: "Crewmate",
+  // Show game
+  game.classList.remove("hidden");
 
-    alive: true,
+  statusText.textContent = "Round started! Use W A S D to move.";
 
-    tasksDone: 0,
+  // Start game
+  gameLoop();
 
-    venting: false
-  };
+});
 
-  let sabotage = null;
 
-  // =========================
-  // START ROUND
-  // =========================
+// ========================================
+// PLAYER MOVEMENT
+// ========================================
 
-  startBtn.addEventListener("click", startRound);
+function movePlayer() {
 
-  function startRound() {
+  if (keys["w"]) {
+    player.y -= player.speed;
+  }
 
-    console.log("START ROUND CLICKED");
+  if (keys["s"]) {
+    player.y += player.speed;
+  }
 
-    startMessage.textContent = "Starting round...";
+  if (keys["a"]) {
+    player.x -= player.speed;
+  }
 
-    playerCount = Number(playerCountInput.value);
-    impostorCount = Number(impostorCountInput.value);
-    totalTasks = Number(taskCountInput.value);
-
-    visionRadius = Number(visionInput.value);
-
-    // Make sure impostors never exceed a reasonable amount
-    if (impostorCount >= playerCount) {
-      impostorCount = Math.max(1, playerCount - 1);
-    }
-
-    // Hide menu
-    menu.classList.add("hidden");
-
-    // Show game
-    game.classList.remove("hidden");
-
-    // Reset player
-    player = {
-      x: canvas.width / 2,
-      y: canvas.height / 2,
-
-      speed: 4,
-
-      radius: 18,
-
-      color: "#55aaff",
-
-      role: "Crewmate",
-
-      alive: true,
-
-      tasksDone: 0,
-
-      venting: false
-    };
-
-    // Create game
-    createTasks();
-    createBots();
-    assignRoles();
-
-    updateHUD();
-
-    gameStarted = true;
-
-    // Start game loop
-    cancelAnimationFrame(animationFrame);
-
-    gameLoop();
-
-    showToast("Round started! Use W A S D to move.");
-
+  if (keys["d"]) {
+    player.x += player.speed;
   }
 
 
-  // =========================
-  // CREATE TASKS
-  // =========================
+  // Keep player inside screen
 
-  function createTasks() {
-
-    tasks = [];
-
-    const taskLocations = [
-      { x: 180, y: 150, name: "Electrical" },
-      { x: 450, y: 120, name: "Cafeteria" },
-      { x: 800, y: 150, name: "Weapons" },
-      { x: 180, y: 470, name: "MedBay" },
-      { x: 500, y: 500, name: "Storage" },
-      { x: 800, y: 470, name: "Navigation" },
-      { x: 500, y: 300, name: "Admin" }
-    ];
-
-    for (let i = 0; i < totalTasks; i++) {
-
-      const location = taskLocations[i % taskLocations.length];
-
-      tasks.push({
-        x: location.x,
-        y: location.y,
-
-        name: location.name,
-
-        completed: false
-      });
-
-    }
-
+  if (player.x < 30) {
+    player.x = 30;
   }
 
-
-  // =========================
-  // CREATE BOTS
-  // =========================
-
-  function createBots() {
-
-    bots = [];
-
-    for (let i = 0; i < playerCount - 1; i++) {
-
-      bots.push({
-
-        id: i,
-
-        x: 80 + Math.random() * 840,
-
-        y: 80 + Math.random() * 490,
-
-        radius: 18,
-
-        color: randomColor(),
-
-        role: "Crewmate",
-
-        alive: true,
-
-        isImpostor: false,
-
-        body: false
-
-      });
-
-    }
-
+  if (player.x > canvas.width - 30) {
+    player.x = canvas.width - 30;
   }
 
-
-  // =========================
-  // ASSIGN ROLES
-  // =========================
-
-  function assignRoles() {
-
-    let impostorsAssigned = 0;
-
-    // Randomly choose impostor bots
-    while (impostorsAssigned < impostorCount) {
-
-      const index = Math.floor(Math.random() * bots.length);
-
-      if (!bots[index].isImpostor) {
-
-        bots[index].isImpostor = true;
-        bots[index].role = "Impostor";
-
-        impostorsAssigned++;
-
-      }
-
-    }
-
-    // Small chance player is impostor
-    if (Math.random() < 0.25 && impostorCount > 0) {
-
-      player.role = "Impostor";
-
-      player.isImpostor = true;
-
-      // Turn one bot back into crewmate
-      const bot = bots.find(b => b.isImpostor);
-
-      if (bot) {
-
-        bot.isImpostor = false;
-        bot.role = "Crewmate";
-
-      }
-
-    } else {
-
-      player.role = "Crewmate";
-      player.isImpostor = false;
-
-    }
-
-    if (player.isImpostor) {
-
-      roleText.textContent = "Role: IMPOSTOR";
-
-      killBtn.classList.remove("hidden");
-      ventBtn.classList.remove("hidden");
-      sabotageBox.classList.remove("hidden");
-
-    } else {
-
-      roleText.textContent = "Role: Crewmate";
-
-      killBtn.classList.add("hidden");
-      ventBtn.classList.add("hidden");
-      sabotageBox.classList.add("hidden");
-
-    }
-
+  if (player.y < 30) {
+    player.y = 30;
   }
 
-
-  // =========================
-  // MOVEMENT
-  // =========================
-
-  window.addEventListener("keydown", event => {
-
-    keys[event.key.toLowerCase()] = true;
-
-  });
-
-  window.addEventListener("keyup", event => {
-
-    keys[event.key.toLowerCase()] = false;
-
-  });
-
-
-  function movePlayer() {
-
-    if (!gameStarted || !player.alive) {
-      return;
-    }
-
-    let dx = 0;
-    let dy = 0;
-
-    if (keys["w"]) dy -= 1;
-    if (keys["s"]) dy += 1;
-    if (keys["a"]) dx -= 1;
-    if (keys["d"]) dx += 1;
-
-    // Normalize diagonal movement
-    if (dx !== 0 || dy !== 0) {
-
-      const length = Math.sqrt(dx * dx + dy * dy);
-
-      dx /= length;
-      dy /= length;
-
-    }
-
-    player.x += dx * player.speed;
-    player.y += dy * player.speed;
-
-    // Keep player on map
-    player.x = Math.max(30, Math.min(canvas.width - 30, player.x));
-    player.y = Math.max(30, Math.min(canvas.height - 30, player.y));
-
+  if (player.y > canvas.height - 30) {
+    player.y = canvas.height - 30;
   }
 
+}
 
-  // =========================
-  // BOT MOVEMENT
-  // =========================
 
-  function moveBots() {
+// ========================================
+// DRAW PLAYER
+// ========================================
 
-    for (const bot of bots) {
+function drawPlayer() {
 
-      if (!bot.alive) continue;
+  // Body
 
-      if (Math.random() < 0.02) {
+  ctx.fillStyle = player.color;
 
-        bot.dx = Math.random() * 2 - 1;
-        bot.dy = Math.random() * 2 - 1;
+  ctx.beginPath();
 
-      }
-
-      bot.x += (bot.dx || 0) * 1.2;
-      bot.y += (bot.dy || 0) * 1.2;
-
-      bot.x = Math.max(30, Math.min(canvas.width - 30, bot.x));
-      bot.y = Math.max(30, Math.min(canvas.height - 30, bot.y));
-
-    }
-
-  }
-
-
-  // =========================
-  // GAME LOOP
-  // =========================
-
-  function gameLoop() {
-
-    if (!gameStarted) return;
-
-    movePlayer();
-    moveBots();
-
-    draw();
-
-    animationFrame = requestAnimationFrame(gameLoop);
-
-  }
-
-
-  // =========================
-  // DRAW GAME
-  // =========================
-
-  function draw() {
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    drawMap();
-
-    // Draw tasks
-    for (const task of tasks) {
-
-      if (!task.completed) {
-
-        ctx.fillStyle = "#ffd84d";
-
-        ctx.beginPath();
-        ctx.arc(task.x, task.y, 8, 0, Math.PI * 2);
-        ctx.fill();
-
-      }
-
-    }
-
-    // Draw bots
-    for (const bot of bots) {
-
-      if (!bot.alive) {
-
-        drawBody(bot);
-        continue;
-
-      }
-
-      // Impostors are visible
-      drawBean(
-        bot.x,
-        bot.y,
-        bot.color
-      );
-
-    }
-
-    // Draw player
-    if (player.alive) {
-
-      drawBean(
-        player.x,
-        player.y,
-        player.color
-      );
-
-    }
-
-    drawVision();
-
-  }
-
-
-  // =========================
-  // MAP
-  // =========================
-
-  function drawMap() {
-
-    ctx.fillStyle = "#293241";
-
-    ctx.fillRect(
-      0,
-      0,
-      canvas.width,
-      canvas.height
-    );
-
-    // Rooms
-    drawRoom(60, 60, 250, 180, "Electrical");
-    drawRoom(350, 60, 300, 180, "Cafeteria");
-    drawRoom(690, 60, 250, 180, "Weapons");
-
-    drawRoom(60, 350, 250, 220, "MedBay");
-    drawRoom(350, 350, 300, 220, "Storage");
-    drawRoom(690, 350, 250, 220, "Navigation");
-
-    // Hallways
-    ctx.fillStyle = "#394554";
-
-    ctx.fillRect(310, 120, 40, 350);
-    ctx.fillRect(650, 120, 40, 350);
-
-    ctx.fillRect(150, 240, 700, 50);
-
-  }
-
-
-  function drawRoom(x, y, width, height, name) {
-
-    ctx.fillStyle = "#303b4a";
-
-    ctx.fillRect(x, y, width, height);
-
-    ctx.strokeStyle = "#566477";
-    ctx.lineWidth = 5;
-
-    ctx.strokeRect(x, y, width, height);
-
-    ctx.fillStyle = "#aeb8c7";
-
-    ctx.font = "16px Arial";
-
-    ctx.fillText(
-      name,
-      x + 15,
-      y + 25
-    );
-
-  }
-
-
-  // =========================
-  // BEAN CHARACTER
-  // =========================
-
-  function drawBean(x, y, color) {
-
-    ctx.save();
-
-    // Body
-    ctx.fillStyle = color;
-
-    ctx.beginPath();
-
-    ctx.arc(
-      x,
-      y,
-      18,
-      0,
-      Math.PI * 2
-    );
-
-    ctx.fill();
-
-    // Backpack
-    ctx.fillStyle = "#30343b";
-
-    ctx.fillRect(
-      x - 23,
-      y - 5,
-      8,
-      17
-    );
-
-    // Goggles
-    ctx.fillStyle = "#bfe9ff";
-
-    ctx.beginPath();
-
-    ctx.ellipse(
-      x + 5,
-      y - 6,
-      12,
-      8,
-      0,
-      0,
-      Math.PI * 2
-    );
-
-    ctx.fill();
-
-    ctx.strokeStyle = "#e7f8ff";
-    ctx.lineWidth = 2;
-
-    ctx.stroke();
-
-    ctx.restore();
-
-  }
-
-
-  // =========================
-  // VISION
-  // =========================
-
-  function drawVision() {
-
-    // Darken the whole map slightly
-    ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
-
-    ctx.fillRect(
-      0,
-      0,
-      canvas.width,
-      canvas.height
-    );
-
-    // Bright vision around player
-    const gradient = ctx.createRadialGradient(
-      player.x,
-      player.y,
-      visionRadius * 0.35,
-
-      player.x,
-      player.y,
-      visionRadius
-    );
-
-    gradient.addColorStop(
-      0,
-      "rgba(0,0,0,0)"
-    );
-
-    gradient.addColorStop(
-      0.75,
-      "rgba(0,0,0,0.05)"
-    );
-
-    gradient.addColorStop(
-      1,
-      "rgba(0,0,0,0.48)"
-    );
-
-    ctx.fillStyle = gradient;
-
-    ctx.beginPath();
-
-    ctx.arc(
-      player.x,
-      player.y,
-      visionRadius,
-      0,
-      Math.PI * 2
-    );
-
-    ctx.fill();
-
-  }
-
-
-  // =========================
-  // TASKS
-  // =========================
-
-  useBtn.addEventListener("click", useNearby);
-
-  function useNearby() {
-
-    if (!player.alive) return;
-
-    let closest = null;
-    let closestDistance = Infinity;
-
-    for (const task of tasks) {
-
-      if (task.completed) continue;
-
-      const distance = Math.hypot(
-        task.x - player.x,
-        task.y - player.y
-      );
-
-      if (distance < closestDistance) {
-
-        closestDistance = distance;
-        closest = task;
-
-      }
-
-    }
-
-    if (closest && closestDistance < 60) {
-
-      openTask(closest);
-
-    } else {
-
-      showToast("Move closer to a task.");
-
-    }
-
-  }
-
-
-  function openTask(task) {
-
-    if (player.isImpostor) {
-
-      showToast("Impostors cannot complete tasks!");
-
-      return;
-
-    }
-
-    taskModal.classList.remove("hidden");
-
-    taskTitle.textContent = task.name;
-
-    taskDescription.textContent =
-      "Complete this task to help the crew.";
-
-    taskFill.style.width = "0%";
-
-    finishTask.onclick = () => {
-
-      task.completed = true;
-
-      player.tasksDone++;
-
-      taskModal.classList.add("hidden");
-
-      updateHUD();
-
-      showToast("Task completed!");
-
-      checkWin();
-
-    };
-
-  }
-
-
-  closeTask.addEventListener("click", () => {
-
-    taskModal.classList.add("hidden");
-
-  });
-
-
-  // =========================
-  // KILL
-  // =========================
-
-  killBtn.addEventListener("click", killNearby);
-
-  function killNearby() {
-
-    if (!player.isImpostor) return;
-
-    let target = null;
-    let distance = Infinity;
-
-    for (const bot of bots) {
-
-      if (!bot.alive || bot.isImpostor) continue;
-
-      const d = Math.hypot(
-        bot.x - player.x,
-        bot.y - player.y
-      );
-
-      if (d < distance) {
-
-        distance = d;
-        target = bot;
-
-      }
-
-    }
-
-    if (target && distance < 65) {
-
-      target.alive = false;
-      target.body = true;
-
-      showToast("You eliminated a crewmate.");
-
-      checkWin();
-
-    } else {
-
-      showToast("No crewmate nearby.");
-
-    }
-
-  }
-
-
-  // =========================
-  // REPORT
-  // =========================
-
-  reportBtn.addEventListener("click", reportBody);
-
-  function reportBody() {
-
-    let bodyFound = false;
-
-    for (const bot of bots) {
-
-      if (!bot.body) continue;
-
-      const distance = Math.hypot(
-        bot.x - player.x,
-        bot.y - player.y
-      );
-
-      if (distance < 80) {
-
-        bodyFound = true;
-        break;
-
-      }
-
-    }
-
-    if (bodyFound) {
-
-      openMeeting("Body reported!");
-
-    } else {
-
-      showToast("No body nearby.");
-
-    }
-
-  }
-
-
-  // =========================
-  // EMERGENCY MEETING
-  // =========================
-
-  meetingBtn.addEventListener("click", () => {
-
-    openMeeting("Emergency meeting!");
-
-  });
-
-
-  function openMeeting(reason) {
-
-    meetingModal.classList.remove("hidden");
-
-    meetingReason.textContent = reason;
-
-    voteStatus.textContent = "";
-
-    voteGrid.innerHTML = "";
-
-    bots.forEach(bot => {
-
-      if (!bot.alive) return;
-
-      const button = document.createElement("button");
-
-      button.className = "voteButton";
-
-      button.textContent = "Bean " + (bot.id + 1);
-
-      button.onclick = () => vote(bot);
-
-      voteGrid.appendChild(button);
-
-    });
-
-  }
-
-
-  function vote(bot) {
-
-    meetingModal.classList.add("hidden");
-
-    bot.alive = false;
-
-    showToast("Vote complete.");
-
-    checkWin();
-
-  }
-
-
-  skipVote.addEventListener("click", () => {
-
-    meetingModal.classList.add("hidden");
-
-    showToast("Skipped vote.");
-
-  });
-
-
-  // =========================
-  // VENT
-  // =========================
-
-  ventBtn.addEventListener("click", () => {
-
-    if (!player.isImpostor) return;
-
-    player.venting = !player.venting;
-
-    if (player.venting) {
-
-      showToast("You entered a vent.");
-
-    } else {
-
-      showToast("You left the vent.");
-
-    }
-
-  });
-
-
-  // =========================
-  // SABOTAGE
-  // =========================
-
-  document.getElementById("lightsBtn").addEventListener(
-    "click",
-    () => sabotageGame("Lights")
+  ctx.arc(
+    player.x,
+    player.y,
+    25,
+    0,
+    Math.PI * 2
   );
 
-  document.getElementById("commsBtn").addEventListener(
-    "click",
-    () => sabotageGame("Communications")
-  );
+  ctx.fill();
 
-  document.getElementById("reactorBtn").addEventListener(
-    "click",
-    () => sabotageGame("Reactor")
-  );
 
-  document.getElementById("o2Btn").addEventListener(
-    "click",
-    () => sabotageGame("O2")
+  // Backpack
+
+  ctx.fillStyle = "#333";
+
+  ctx.fillRect(
+    player.x - 32,
+    player.y - 8,
+    10,
+    20
   );
 
 
-  function sabotageGame(type) {
+  // Goggles
 
-    if (!player.isImpostor) return;
+  ctx.fillStyle = "#bdefff";
 
-    sabotage = type;
+  ctx.beginPath();
 
-    showToast(type + " sabotaged!");
+  ctx.ellipse(
+    player.x + 7,
+    player.y - 8,
+    17,
+    11,
+    0,
+    0,
+    Math.PI * 2
+  );
 
-    setTimeout(() => {
+  ctx.fill();
 
-      if (sabotage === type) {
 
-        if (type === "Reactor" || type === "O2") {
+  // Goggles outline
 
-          endGame(
-            "IMPOSTORS WIN",
-            type + " was not fixed in time!"
-          );
+  ctx.strokeStyle = "white";
 
-        } else {
+  ctx.lineWidth = 3;
 
-          sabotage = null;
+  ctx.stroke();
 
-        }
+}
 
-      }
 
-    }, 30000);
+// ========================================
+// DRAW MAP
+// ========================================
 
-  }
+function drawMap() {
 
+  // Background
 
-  // =========================
-  // WIN CONDITIONS
-  // =========================
+  ctx.fillStyle = "#29313d";
 
-  function checkWin() {
+  ctx.fillRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
 
-    if (!gameStarted) return;
 
-    const livingCrew = bots.filter(
-      bot => bot.alive && !bot.isImpostor
-    ).length
-    + (
-      player.alive && !player.isImpostor
-        ? 1
-        : 0
-    );
+  // Simple rooms
 
-    const livingImpostors = bots.filter(
-      bot => bot.alive && bot.isImpostor
-    ).length
-    + (
-      player.alive && player.isImpostor
-        ? 1
-        : 0
-    );
+  drawRoom(
+    80,
+    80,
+    250,
+    180,
+    "CAFETERIA"
+  );
 
-    if (livingImpostors === 0) {
+  drawRoom(
+    canvas.width - 330,
+    80,
+    250,
+    180,
+    "WEAPONS"
+  );
 
-      endGame(
-        "CREWMATES WIN",
-        "All impostors have been eliminated!"
-      );
+  drawRoom(
+    80,
+    canvas.height - 260,
+    250,
+    180,
+    "MEDBAY"
+  );
 
-      return;
+  drawRoom(
+    canvas.width - 330,
+    canvas.height - 260,
+    250,
+    180,
+    "STORAGE"
+  );
 
-    }
+}
 
-    if (livingImpostors >= livingCrew) {
 
-      endGame(
-        "IMPOSTORS WIN",
-        "The impostors have taken control!"
-      );
+function drawRoom(x, y, width, height, name) {
 
-      return;
+  ctx.fillStyle = "#394554";
 
-    }
+  ctx.fillRect(
+    x,
+    y,
+    width,
+    height
+  );
 
-    if (
-      !player.isImpostor &&
-      player.tasksDone >= totalTasks
-    ) {
 
-      endGame(
-        "CREWMATES WIN",
-        "You completed all your tasks!"
-      );
+  ctx.strokeStyle = "#687789";
 
-    }
+  ctx.lineWidth = 5;
 
-  }
+  ctx.strokeRect(
+    x,
+    y,
+    width,
+    height
+  );
 
 
-  function endGame(title, reason) {
+  ctx.fillStyle = "white";
 
-    gameStarted = false;
+  ctx.font = "18px Arial";
 
-    cancelAnimationFrame(animationFrame);
+  ctx.fillText(
+    name,
+    x + 15,
+    y + 30
+  );
 
-    winTitle.textContent = title;
-    winReason.textContent = reason;
+}
 
-    winScreen.classList.remove("hidden");
 
-  }
+// ========================================
+// VISION
+// ========================================
 
+function drawVision() {
 
-  // =========================
-  // PLAY AGAIN
-  // =========================
+  // Make the whole map slightly darker
 
-  playAgain.addEventListener("click", () => {
+  ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
 
-    winScreen.classList.add("hidden");
+  ctx.fillRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
 
-    menu.classList.remove("hidden");
 
-    game.classList.add("hidden");
+  // Player vision
 
-    startMessage.textContent = "";
+  const visionRadius = 260;
 
-    gameStarted = false;
 
-  });
+  const gradient = ctx.createRadialGradient(
+    player.x,
+    player.y,
+    50,
 
+    player.x,
+    player.y,
+    visionRadius
+  );
 
-  // =========================
-  // HUD
-  // =========================
 
-  function updateHUD() {
+  gradient.addColorStop(
+    0,
+    "rgba(0, 0, 0, 0)"
+  );
 
-    taskText.textContent =
-      "Tasks: " +
-      player.tasksDone +
-      "/" +
-      totalTasks;
+  gradient.addColorStop(
+    0.7,
+    "rgba(0, 0, 0, 0.05)"
+  );
 
-  }
+  gradient.addColorStop(
+    1,
+    "rgba(0, 0, 0, 0.45)"
+  );
 
 
-  // =========================
-  // TOAST
-  // =========================
+  ctx.fillStyle = gradient;
 
-  function showToast(message) {
+  ctx.beginPath();
 
-    toast.textContent = message;
+  ctx.arc(
+    player.x,
+    player.y,
+    visionRadius,
+    0,
+    Math.PI * 2
+  );
 
-    toast.style.opacity = "1";
+  ctx.fill();
 
-    clearTimeout(showToast.timer);
+}
 
-    showToast.timer = setTimeout(() => {
 
-      toast.style.opacity = "0";
+// ========================================
+// GAME LOOP
+// ========================================
 
-    }, 2000);
+function gameLoop() {
 
-  }
+  movePlayer();
 
+  drawMap();
 
-  // =========================
-  // BODY
-  // =========================
+  drawPlayer();
 
-  function drawBody(bot) {
+  drawVision();
 
-    ctx.fillStyle = "#555";
 
-    ctx.beginPath();
+  requestAnimationFrame(gameLoop);
 
-    ctx.arc(
-      bot.x,
-      bot.y,
-      15,
-      0,
-      Math.PI * 2
-    );
+}
 
-    ctx.fill();
 
-  }
+// ========================================
+// RESIZE
+// ========================================
 
+window.addEventListener("resize", function() {
 
-  // =========================
-  // COLORS
-  // =========================
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
 
-  function randomColor() {
-
-    const colors = [
-      "#e53935",
-      "#42a5f5",
-      "#ffffff",
-      "#43a047",
-      "#ff69b4",
-      "#9c27b0",
-      "#8d6e63",
-      "#ff9800",
-      "#fdd835",
-      "#90a4ae"
-    ];
-
-    return colors[
-      Math.floor(Math.random() * colors.length)
-    ];
-
-  }
+  player.x = canvas.width / 2;
+  player.y = canvas.height / 2;
 
 });
 ```
