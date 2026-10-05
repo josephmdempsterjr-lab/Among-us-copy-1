@@ -10,148 +10,140 @@
 
 <body>
 
+  <!-- START MENU -->
   <div id="menu" class="screen">
-    <div class="panel">
-      <h1>BEAN CREW</h1>
-      <p>A space-crewmate social deduction game</p>
+    <h1>BEAN CREW</h1>
+    <p>Among-Us-style Bean Game</p>
 
-      <div class="settings">
-        <label>
-          Players
-          <select id="playerCount">
-            <option>4</option>
-            <option>8</option>
-            <option selected>10</option>
-            <option>12</option>
-            <option>15</option>
-          </select>
-        </label>
+    <label>
+      Players:
+      <select id="playerCount">
+        <option value="4">4</option>
+        <option value="6">6</option>
+        <option value="10">10</option>
+        <option value="15" selected>15</option>
+      </select>
+    </label>
 
-        <label>
-          Impostors
-          <select id="impostorCount">
-            <option>1</option>
-            <option selected>2</option>
-            <option>3</option>
-          </select>
-        </label>
+    <label>
+      Impostors:
+      <select id="impostorCount">
+        <option value="1">1</option>
+        <option value="2" selected>2</option>
+        <option value="3">3</option>
+      </select>
+    </label>
 
-        <label>
-          Tasks
-          <select id="taskCount">
-            <option>3</option>
-            <option selected>5</option>
-            <option>7</option>
-          </select>
-        </label>
+    <label>
+      Tasks:
+      <select id="taskCount">
+        <option value="3">3</option>
+        <option value="5" selected>5</option>
+        <option value="7">7</option>
+      </select>
+    </label>
 
-        <label>
-          Vision
-          <select id="vision">
-            <option value="260">Low</option>
-            <option value="340" selected>Normal</option>
-            <option value="450">High</option>
-          </select>
-        </label>
-      </div>
+    <label>
+      Vision:
+      <input id="vision" type="range" min="150" max="350" value="250">
+    </label>
 
-      <button id="startBtn">START ROUND</button>
+    <!-- IMPORTANT: THIS IS THE START BUTTON -->
+    <button id="startBtn" type="button">START ROUND</button>
 
-      <p class="controls">
-        WASD = Move<br>
-        E = Interact<br>
-        R = Report<br>
-        Q = Kill as Impostor<br>
-        M = Emergency Meeting
-      </p>
-    </div>
+    <p id="startMessage"></p>
   </div>
 
+
+  <!-- GAME -->
   <div id="game" class="hidden">
 
-    <canvas id="gameCanvas"></canvas>
+    <canvas id="gameCanvas" width="1000" height="650"></canvas>
 
     <div id="hud">
-      <div>
-        ROLE:
-        <b id="roleText">CREWMATE</b>
-      </div>
 
-      <div>
-        TASKS:
-        <b id="taskText">0 / 0</b>
-      </div>
+      <div id="roleText">Role: Crewmate</div>
+      <div id="taskText">Tasks: 0/5</div>
 
-      <div id="sabotageBox" class="hidden">
-        SABOTAGE:
-        <b id="sabotageText"></b>
-      </div>
+      <button id="meetingBtn">Emergency Meeting</button>
+      <button id="reportBtn">Report</button>
+      <button id="useBtn">Use</button>
+      <button id="ventBtn" class="hidden">Vent</button>
+      <button id="killBtn" class="hidden">Kill</button>
+
     </div>
 
-    <div id="actionBar">
-      <button id="reportBtn">REPORT</button>
-      <button id="useBtn">USE</button>
-      <button id="killBtn" class="hidden">KILL</button>
-      <button id="ventBtn" class="hidden">VENT</button>
-      <button id="meetingBtn">EMERGENCY</button>
+    <div id="sabotageBox" class="hidden">
+      <button id="lightsBtn">Sabotage Lights</button>
+      <button id="commsBtn">Sabotage Communications</button>
+      <button id="reactorBtn">Sabotage Reactor</button>
+      <button id="o2Btn">Sabotage O2</button>
     </div>
-
-    <div id="taskModal" class="modal hidden">
-      <div class="modalCard">
-        <h2 id="taskTitle">Task</h2>
-
-        <p id="taskDescription"></p>
-
-        <div id="taskMiniGame">
-          <div class="taskProgress">
-            <div id="taskFill"></div>
-          </div>
-        </div>
-
-        <button id="finishTask">COMPLETE TASK</button>
-        <button class="secondary closeModal">CLOSE</button>
-      </div>
-    </div>
-
-    <div id="meetingModal" class="modal hidden">
-      <div class="meetingCard">
-        <h2>EMERGENCY MEETING</h2>
-
-        <p id="meetingReason">
-          Discuss who you saw.
-        </p>
-
-        <div id="voteGrid"></div>
-
-        <button id="skipVote">
-          SKIP
-        </button>
-
-        <p id="voteStatus">
-          Vote for someone.
-        </p>
-      </div>
-    </div>
-
-    <div id="winScreen" class="modal hidden">
-      <div class="modalCard">
-        <h1 id="winTitle">
-          CREWMATES WIN
-        </h1>
-
-        <p id="winReason"></p>
-
-        <button id="playAgain">
-          PLAY AGAIN
-        </button>
-      </div>
-    </div>
-
-    <div id="toast"></div>
 
   </div>
 
+
+  <!-- TASK WINDOW -->
+  <div id="taskModal" class="modal hidden">
+
+    <div class="modalContent">
+
+      <button class="closeModal" id="closeTask">X</button>
+
+      <h2 id="taskTitle">Task</h2>
+
+      <p id="taskDescription">
+        Complete the task.
+      </p>
+
+      <div class="taskBar">
+        <div id="taskFill"></div>
+      </div>
+
+      <button id="finishTask">Complete Task</button>
+
+    </div>
+
+  </div>
+
+
+  <!-- MEETING WINDOW -->
+  <div id="meetingModal" class="modal hidden">
+
+    <div class="modalContent">
+
+      <h2>MEETING</h2>
+
+      <p id="meetingReason">Emergency Meeting</p>
+
+      <div id="voteGrid"></div>
+
+      <p id="voteStatus"></p>
+
+      <button id="skipVote">Skip Vote</button>
+
+    </div>
+
+  </div>
+
+
+  <!-- WIN SCREEN -->
+  <div id="winScreen" class="screen hidden">
+
+    <h1 id="winTitle">GAME OVER</h1>
+
+    <p id="winReason"></p>
+
+    <button id="playAgain">PLAY AGAIN</button>
+
+  </div>
+
+
+  <!-- MESSAGE -->
+  <div id="toast"></div>
+
   <script src="script.js"></script>
+
 </body>
 </html>
 ```
