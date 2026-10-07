@@ -1,39 +1,18 @@
-```html
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bean Crew</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-
-<body>
-
-  <!-- MENU -->
-  <div id="menu">
-    <h1>BEAN CREW</h1>
-    <p>Among-Us-style game</p>
-
-    <button id="startButton">START ROUND</button>
-  </div>
-
-
-  <!-- GAME -->
-  <div id="game" class="hidden">
-
-    <canvas id="gameCanvas"></canvas>
-
-    <div id="controls">
-      <p>W A S D = Move</p>
-      <p id="status">Round started!</p>
-    </div>
-
-  </div>
-
-
-  <script src="script.js"></script>
-
-</body>
-</html>
-```
+<html lang="en"><head><meta charset="utf-8"><title>Among Us – The Skeld</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="color-scheme" content="dark">
+<link rel="stylesheet" href="style.css"></head><body>
+<canvas id="c"></canvas>
+<div id="hud" class="hide"><div id="tasks"></div><div id="alert"></div><div id="msgs"></div><div id="role"></div><div id="vit" class="hide"></div><div id="hint"></div>
+<div id="sabp" class="hide"></div><div id="btns"></div></div>
+<div id="menu" class="ov"><div class="pn"><h1>AMONG US · THE SKELD</h1>
+<p>Solo game against AI bots. <b>WASD</b> move · <b>E</b> use (hold for tasks) · <b>Q</b> kill · <b>R</b> report · <b>V</b> vent · <b>F</b> role ability · <b>1-5</b> sabotage (impostor) / symbols (Influencer ghost) · <b>M</b> map</p>
+<button id="go" style="font-size:24px;background:#c22;padding:14px 40px">▶ START GAME</button>
+<details style="margin-top:12px"><summary>Lobby settings, roles &amp; cosmetics (optional)</summary><h3>Lobby settings (host)</h3><div id="set"></div><div id="roles" style="margin:8px 0"></div>
+<h3>Your bean — <span id="beans"></span> 🫘</h3><div id="sws"></div><div id="hats"></div></details></div></div>
+<div id="intro" class="ov hide"></div>
+<div id="meet" class="ov hide"><div class="pn"><h2 id="mh">Who is the Impostor?</h2><div id="chat"></div><div id="rows"></div><button onclick="vote('skip')">Skip vote</button> <span id="mt"></span></div></div>
+<div id="lights" class="ov hide"><div class="pn" style="text-align:center;width:auto"><h3>Fix Lights – turn all switches ON</h3><div id="sw5"></div><button onclick="$('lights').classList.add('hide');G.lui=0">Close</button></div></div>
+<div id="end" class="ov hide"></div>
+<script src="game.js"></script>
+</body></html>
