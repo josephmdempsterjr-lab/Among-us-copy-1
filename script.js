@@ -131,3 +131,53 @@ render = function () {
     G.flash -= 0.02;
   }
 };
+
+/* ================= v2: effects drawn ABOVE the vision mask ================= */
+
+// Badge so you can confirm this file loaded.
+(() => {
+  const b = document.createElement('div');
+  b.textContent = '✦ UPGRADE LOADED';
+  b.style.cssText = 'position:fixed;left:50%;bottom:6px;transform:translateX(-50%);z-index:99;font:700 11px system-ui;letter-spacing:2px;color:#3df;text-shadow:0 0 8px #3df;pointer-events:none;opacity:.8';
+  document.body.appendChild(b);
+  document.title = 'Among Us ✦ Upgraded';
+})();
+
+// Screen-space starfield with parallax + dust motes, drawn additively over everything.
+const SS = Array.from({ length: 140 }, () => ({ x: Math.random(), y: Math.random(), r: rnd(.6, 2), z: rnd(.02, .12), p: rnd(0, 6.28) }));
+const DUST = Array.from({ length: 40 }, () => ({ x: Math.random(), y: Math.random(), v: rnd(.004, .02), r: rnd(1, 3) }));
+
+const _render2 = render;
+render = function () {
+  _render2();
+  if (!G || G.phase !== 'play') return;
+  const me = G.pl[0], t = G.t;
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+
+  // Blue ambient wash so the dark areas aren't dead black.
+  ctx.fillStyle = G.sab ? 'rgba(90,10,15,.14)' : 'rgba(20,45,110,.14)';
+  ctx.fillRect(0, 0, W, H);
+
+  // Parallax stars.
+  SS.forEach(s => {
+    const x = ((s.x * W - me.x * s.z) % W + W) % W, y = ((s.y * H - me.y * s.z) % H + H) % H;
+    ctx.fillStyle = `rgba(190,225,255,${.35 + .45 * Math.sin(t * 2 + s.p)})`;
+    ctx.fillRect(x, y, s.r, s.r);
+  });
+
+  // Floating dust motes.
+  DUST.forEach(d => {
+    d.y -= d.v * .016; if (d.y < 0) { d.y = 1; d.x = Math.random(); }
+    ctx.fillStyle = 'rgba(120,200,255,.25)';
+    ctx.beginPath(); ctx.arc(d.x * W + Math.sin(t + d.x * 9) * 12, d.y * H, d.r, 0, 7); ctx.fill();
+  });
+
+  // Colored light halo around you (your bean color).
+  const g = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, 170);
+  g.addColorStop(0, COLORS[me.col] + '44'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g; ctx.fillRect(W / 2 - 170, H / 2 - 170, 340, 340);
+
+  ctx.restore();
+};
